@@ -481,114 +481,29 @@
 
         // 물리 엔진 (Matter.js) 전역 변수
         let engine, world, matterRender, matterRunner, mouseConstraint;
-        let floor, leftWall, rightWall, ceiling, timerBody;
+        let floor, leftWall, rightWall, timerBody;
 
-        // ===== 흔들기(Shake) 입력 =====
-        // 중력은 항상 아래로 고정. 기기를 흔들 때만 가속도에 따라 똥에 힘이 가해짐.
-        const SHAKE = {
-            deadzone: 4,      // 이 가속도(m/s²) 미만은 무시 → 가만히 들고 있을 땐 평소와 동일
-            gain: 0.0006,     // 가속도 1m/s²당 힘 (중력 ≈ 0.0001/m/s²) → 클수록 더 난리 (이전 0.0004)
-            maxAccel: 40,     // 입력 가속도 상한
-            inertia: -1,      // -1: 관성 방향(기기를 오른쪽으로 휘두르면 똥은 왼쪽으로 쏠림), 1: 기기 방향 그대로
-            decay: 0.85,      // 프레임당 흔들림 힘 감쇠
-            spin: 0.35,       // 흔들 때 추가되는 무작위 회전량
-            bounce: 0.45,     // 흔들 때 추가되는 탄성
-            speedBoost: 28,   // 흔들 때 좌우/아래 방향 추가 최대 속도 (이전 22)
-            upwardScale: 0.35,// 위로 향하는 흔들림 힘 비율 (낮을수록 공중에 뜨기 어려움)
-            upSpeedBoost: 3,  // 위 방향은 속도 제한을 거의 풀지 않음
-            gravityBoost: 0.8 // 흔드는 동안 중력 증가 → 떴다가 빨리 떨어짐
-        };
-
-        // ===== 기울기(Tilt) 입력 =====
-        // 기울이면 좌우 중력만 바뀜. 아래쪽 중력은 유지되어 바닥에서 구르는 정도로만 반응.
-        const TILT = {
-            deadzone: 4,        // 도(°) 미만 기울기는 무시 → 거의 평평하게 들면 평소와 동일
-            degreesForMax: 40,  // 이 각도에서 최대 좌우 중력
-            maxGravityX: 0.8,   // 좌우 중력 최대값 (아래 중력 1.0 기준)
-            smoothing: 0.2      // 클수록 즉각 반응
-        };
-        let tiltGravityX = 0;
-        let shakeVec = { x: 0, y: 0 };  // 똥에 가해질 힘의 방향·세기 (화면 좌표, +x 오른쪽 / +y 아래)
-        let shakeBoost = 0;             // 0~1, 최근 흔들림 정도 (속도 제한·탄성 완화에 사용)
-        let gravEst = { x: 0, y: 0 };   // acceleration 미지원 기기용 중력 추정치
-        let motionListening = false;
-
-        // px: 똥을 밀어낼 방향 벡터 (이미 관성 부호 적용됨)
-        function applyShakeInput(px, py) {
-            const mag = Math.hypot(px, py);
-            if (mag < SHAKE.deadzone) return;
-            const k = Math.min(mag, SHAKE.maxAccel) / mag;
-            shakeVec.x = px * k;
-            shakeVec.y = py * k;
-        }
-
-        function handleMotion(event) {
-            if (!window.settings.stackingMode) return;
-
-            let ax, ay;
-            const a = event.acceleration;
-            if (a && a.x !== null && a.y !== null) {
-                ax = a.x; ay = a.y; // 중력 제외 가속도
-            } else {
-                const g = event.accelerationIncludingGravity;
-                if (!g || g.x === null || g.y === null) return;
-                gravEst.x = gravEst.x * 0.9 + g.x * 0.1; // 저역통과로 중력 성분 추정 후 제거
-                gravEst.y = gravEst.y * 0.9 + g.y * 0.1;
-                ax = g.x - gravEst.x;
-                ay = g.y - gravEst.y;
-            }
-
-            // 기기 좌표(+x 오른쪽, +y 위쪽) → 화면 좌표(+x 오른쪽, +y 아래쪽), 화면 회전 보정
-            const angle = (((window.screen.orientation || {}).angle ?? window.orientation ?? 0) + 360) % 360;
-            let sx, sy;
-            if (angle === 90) { sx = -ay; sy = -ax; }
-            else if (angle === 270) { sx = ay; sy = ax; }
-            else if (angle === 180) { sx = -ax; sy = ay; }
-            else { sx = ax; sy = -ay; }
-
-            applyShakeInput(sx * SHAKE.inertia, sy * SHAKE.inertia);
-        }
-
-        // 기울기 → 좌우 중력(gravity.x)만 변경. 앞뒤 기울기는 무시해서 공중에 뜨지 않게 함
         function handleOrientation(event) {
-            if (!window.settings.stackingMode) return;
-            const gamma = event.gamma, beta = event.beta;
-            if (gamma === null || beta === null) return;
+            if (!window.settings.stackingMode || !engine || !engine.world) return;
+            
+            let x = event.gamma; // [-90, 90] 좌우 기울기
+            let y = event.beta;  // [-180, 180] 앞뒤 기울기
+            
+            if (x === null || y === null) return;
+            
+            // 화면 회전 상태에 따른 축 보정
+            const orientation = (window.screen.orientation || {}).angle || window.orientation || 0;
+            let gravityX, gravityY;
+            
+            if (orientation === 90) { gravityX = y; gravityY = -x; } 
+            else if (orientation === -90 || orientation === 270) { gravityX = -y; gravityY = x; } 
+            else if (orientation === 180) { gravityX = -x; gravityY = -y; } 
+            else { gravityX = x; gravityY = y; }
 
-            // 화면 회전 상태에 따라 "화면 기준 좌우 기울기(+ = 오른쪽이 아래)" 선택
-            const angle = (((window.screen.orientation || {}).angle ?? window.orientation ?? 0) + 360) % 360;
-            let tx;
-            if (angle === 90) tx = beta;
-            else if (angle === 270) tx = -beta;
-            else if (angle === 180) tx = -gamma;
-            else tx = gamma;
-
-            const t = Math.abs(tx) < TILT.deadzone ? 0 : tx - Math.sign(tx) * TILT.deadzone;
-            let target = (t / (TILT.degreesForMax - TILT.deadzone)) * TILT.maxGravityX;
-            target = Math.max(-TILT.maxGravityX, Math.min(TILT.maxGravityX, target));
-            tiltGravityX += (target - tiltGravityX) * TILT.smoothing;
+            // 기울기에 따라 중력 변경 (너무 빠르게 날아가지 않도록 최대치 제한)
+            engine.world.gravity.x = Math.max(-2.5, Math.min(2.5, gravityX / 25));
+            engine.world.gravity.y = Math.max(-2.5, Math.min(2.5, gravityY / 25));
         }
-
-        function startMotionListening() {
-            if (motionListening) return;
-            window.addEventListener('devicemotion', handleMotion);
-            window.addEventListener('deviceorientation', handleOrientation);
-            motionListening = true;
-        }
-
-        function stopMotionListening() {
-            window.removeEventListener('devicemotion', handleMotion);
-            window.removeEventListener('deviceorientation', handleOrientation);
-            motionListening = false;
-            shakeVec.x = 0; shakeVec.y = 0; shakeBoost = 0; tiltGravityX = 0;
-        }
-
-        // PC 테스트용: 콘솔에서 window.debugShake(30, 0) → 오른쪽으로 날아감
-        window.debugShake = function(dx = 0, dy = -30) { applyShakeInput(dx, dy); };
-        // PC 테스트용: window.debugTilt(30) → 오른쪽으로 기울임, debugTilt(0) → 해제
-        window.debugTilt = function(deg = 0) {
-            tiltGravityX = Math.max(-TILT.maxGravityX, Math.min(TILT.maxGravityX, (deg / TILT.degreesForMax) * TILT.maxGravityX));
-        };
 
         window.saveData = function() {
             try {
@@ -663,41 +578,22 @@
             
             // 고스트 스킨 무중력 효과 적용 (물리 엔진 업데이트 직전 위로 힘을 가함)
             Matter.Events.on(engine, 'beforeUpdate', function() {
-                const shakeMag = Math.hypot(shakeVec.x, shakeVec.y);
-                // 흔들림 정도(0~1): 올라갈 땐 즉시, 내려갈 땐 천천히 → 흔든 뒤에도 잠깐 계속 날아다님
-                shakeBoost = Math.max(shakeBoost * 0.97, Math.min(1, shakeMag / 25));
-                if (shakeBoost < 0.01) shakeBoost = 0;
-
-                // 중력: 아래(y)는 항상 유지(흔들 땐 더 세게), 좌우(x)만 기울기에 따라 변경
-                engine.world.gravity.x = tiltGravityX;
-                engine.world.gravity.y = 1 + SHAKE.gravityBoost * shakeBoost;
-
                 bouncingObjects.forEach(obj => {
                     if (obj.body) {
                         if (obj.id === 'ghost') {
                             // 위로 너무 둥둥 떠다니지 않도록 반중력 수치를 낮춤 (-0.00085 -> -0.00065)
                             Matter.Body.applyForce(obj.body, obj.body.position, { x: 0, y: -0.00065 * obj.body.mass });
                         }
-
-                        // 흔들기: 가속도 방향으로 힘 + 무작위 회전 + 일시적으로 더 통통 튀게
-                        obj.body.restitution = (obj.id === 'rainbow' ? 1.05 : 0.2) + SHAKE.bounce * shakeBoost;
-                        if (shakeMag > 0) {
-                            const f = SHAKE.gain * obj.body.mass;
-                            // 위로 향하는 힘은 약하게 → 좌우/아래로는 확 날아가지만 공중에 뜨기는 어렵게
-                            const fy = shakeVec.y < 0 ? shakeVec.y * SHAKE.upwardScale : shakeVec.y;
-                            Matter.Body.applyForce(obj.body, obj.body.position, { x: shakeVec.x * f, y: fy * f });
-                            Matter.Body.setAngularVelocity(obj.body, obj.body.angularVelocity + (Math.random() - 0.5) * SHAKE.spin * shakeBoost);
-                        }
-
+                        
                         // 사람이 위로 던질 때 너무 빠르게 올라가는 것을 방지 (속도 제한)
                         const velocity = obj.body.velocity;
                         let newVx = velocity.x;
                         let newVy = velocity.y;
-
-                        // 평소엔 낮게 제한, 흔드는 동안엔 제한을 풀어 난리 나게 함
-                        const MAX_UP_SPEED = -(8 + SHAKE.upSpeedBoost * shakeBoost);
-                        const MAX_SPEED = 12 + SHAKE.speedBoost * shakeBoost;
-
+                        
+                        // 너무 빠르지 않도록 최고 속도 대폭 하향 조정
+                        const MAX_UP_SPEED = -8;  // 위로 던지는 최대 속도 (기존 -12 -> -8)
+                        const MAX_SPEED = 12;     // 전역 좌우/아래 최대 속도 (기존 25 -> 12)
+                        
                         if (newVy < MAX_UP_SPEED) newVy = MAX_UP_SPEED;
                         if (newVy > MAX_SPEED) newVy = MAX_SPEED;
                         if (newVx < -MAX_SPEED) newVx = -MAX_SPEED;
@@ -708,17 +604,12 @@
                         }
                     }
                 });
-
-                // 흔들림 힘 감쇠 (입력이 끊기면 자연스럽게 평소 상태로 복귀)
-                shakeVec.x *= SHAKE.decay;
-                shakeVec.y *= SHAKE.decay;
-                if (Math.hypot(shakeVec.x, shakeVec.y) < 0.5) { shakeVec.x = 0; shakeVec.y = 0; }
             });
         }
 
         function updateWalls() {
             if (!world) return;
-            const bodiesToRemove = [floor, leftWall, rightWall, ceiling, timerBody].filter(Boolean);
+            const bodiesToRemove = [floor, leftWall, rightWall, timerBody].filter(Boolean);
             if (bodiesToRemove.length > 0) Matter.World.remove(world, bodiesToRemove);
             
             const w = window.innerWidth;
@@ -729,10 +620,7 @@
             leftWall = Matter.Bodies.rectangle(-thick/2, h/2, thick, h * 3, { isStatic: true, friction: 0.1 });
             rightWall = Matter.Bodies.rectangle(w + thick/2, h/2, thick, h * 3, { isStatic: true, friction: 0.1 });
             
-            // 천장: 흔들었을 때 똥이 화면 위로 날아가 사라지지 않도록 막음
-            ceiling = Matter.Bodies.rectangle(w/2, -thick/2, w + 200, thick, { isStatic: true, friction: 0.1 });
-
-            let newBodies = [floor, leftWall, rightWall, ceiling];
+            let newBodies = [floor, leftWall, rightWall];
 
             // 타이머 패널을 물리적인 플랫폼(벽)으로 추가
             const timerPanel = document.getElementById('timer-panel');
@@ -762,24 +650,17 @@
             window.saveData();
 
             if (checked) {
-                // iOS 13+ 모션 센서(DeviceMotion) 권한 요청 처리
-                if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                // iOS 13+ 기기 기울임(DeviceOrientation) 권한 요청 처리
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                     try {
-                        const permissionState = await DeviceMotionEvent.requestPermission();
-                        if (permissionState === 'granted') startMotionListening();
-                    } catch (e) {
-                        // 저장된 설정으로 자동 진입한 경우 등 사용자 제스처가 없으면 거부됨 → 첫 터치 때 다시 요청
-                        console.error('모션 센서 권한 요청 에러:', e);
-                        window.addEventListener('click', function retryMotionPermission() {
-                            if (!window.settings.stackingMode) return;
-                            DeviceMotionEvent.requestPermission()
-                                .then(s => { if (s === 'granted') startMotionListening(); })
-                                .catch(() => {});
-                        }, { once: true });
-                    }
+                        const permissionState = await DeviceOrientationEvent.requestPermission();
+                        if (permissionState === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation);
+                        }
+                    } catch (e) { console.error('기기 기울임 권한 요청 에러:', e); }
                 } else {
                     // 안드로이드 및 지원 환경 바로 이벤트 등록
-                    startMotionListening();
+                    window.addEventListener('deviceorientation', handleOrientation);
                 }
 
                 initMatter();
@@ -807,8 +688,8 @@
                     }
                 });
             } else {
-                // 흔들기 이벤트 해제 및 기본 중력으로 리셋
-                stopMotionListening();
+                // 기울임 이벤트 해제 및 기본 중력으로 리셋
+                window.removeEventListener('deviceorientation', handleOrientation);
                 if (engine && engine.world) {
                     engine.world.gravity.x = 0;
                     engine.world.gravity.y = 1;
@@ -1229,9 +1110,9 @@
             let x, y, vx, vy, rotation, rotationSpeed;
             
             if (window.settings.stackingMode) {
-                // 쌓기 모드: 천장 바로 아래(화면 안쪽 상단)에서 떨어짐
+                // 쌓기 모드: 위에서 떨어짐
                 x = Math.random() * (width - 60);
-                y = 15 + Math.random() * Math.min(height * 0.3, 160);
+                y = -60 - Math.random() * 50; 
                 vx = 0; vy = 0;
                 rotation = Math.random() * 360;
                 rotationSpeed = 0;
@@ -1352,7 +1233,7 @@
                     
                     // 화면 밖으로 벗어나는 예외 상황 방지
                     if (obj.y > height + 200) {
-                        Matter.Body.setPosition(obj.body, { x: width / 2, y: 40 });
+                        Matter.Body.setPosition(obj.body, { x: width / 2, y: -50 });
                         Matter.Body.setVelocity(obj.body, { x: 0, y: 0 });
                     }
                 } else if (isRunning && !window.settings.stackingMode) {
