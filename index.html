@@ -483,6 +483,28 @@
         let engine, world, matterRender, matterRunner, mouseConstraint;
         let floor, leftWall, rightWall, timerBody;
 
+        function handleOrientation(event) {
+            if (!window.settings.stackingMode || !engine || !engine.world) return;
+            
+            let x = event.gamma; // [-90, 90] 좌우 기울기
+            let y = event.beta;  // [-180, 180] 앞뒤 기울기
+            
+            if (x === null || y === null) return;
+            
+            // 화면 회전 상태에 따른 축 보정
+            const orientation = (window.screen.orientation || {}).angle || window.orientation || 0;
+            let gravityX, gravityY;
+            
+            if (orientation === 90) { gravityX = y; gravityY = -x; } 
+            else if (orientation === -90 || orientation === 270) { gravityX = -y; gravityY = x; } 
+            else if (orientation === 180) { gravityX = -x; gravityY = -y; } 
+            else { gravityX = x; gravityY = y; }
+
+            // 기울기에 따라 중력 변경 (너무 빠르게 날아가지 않도록 최대치 제한)
+            engine.world.gravity.x = Math.max(-2.5, Math.min(2.5, gravityX / 25));
+            engine.world.gravity.y = Math.max(-2.5, Math.min(2.5, gravityY / 25));
+        }
+
         window.saveData = function() {
             try {
                 localStorage.setItem('poopTimerData', JSON.stringify({
@@ -562,6 +584,24 @@
                             // 위로 너무 둥둥 떠다니지 않도록 반중력 수치를 낮춤 (-0.00085 -> -0.00065)
                             Matter.Body.applyForce(obj.body, obj.body.position, { x: 0, y: -0.00065 * obj.body.mass });
                         }
+                        
+                        // 사람이 위로 던질 때 너무 빠르게 올라가는 것을 방지 (속도 제한)
+                        const velocity = obj.body.velocity;
+                        let newVx = velocity.x;
+                        let newVy = velocity.y;
+                        
+                        // 너무 빠르지 않도록 최고 속도 대폭 하향 조정
+                        const MAX_UP_SPEED = -8;  // 위로 던지는 최대 속도 (기존 -12 -> -8)
+                        const MAX_SPEED = 12;     // 전역 좌우/아래 최대 속도 (기존 25 -> 12)
+                        
+                        if (newVy < MAX_UP_SPEED) newVy = MAX_UP_SPEED;
+                        if (newVy > MAX_SPEED) newVy = MAX_SPEED;
+                        if (newVx < -MAX_SPEED) newVx = -MAX_SPEED;
+                        if (newVx > MAX_SPEED) newVx = MAX_SPEED;
+                        
+                        if (newVx !== velocity.x || newVy !== velocity.y) {
+                            Matter.Body.setVelocity(obj.body, { x: newVx, y: newVy });
+                        }
                     }
                 });
             });
@@ -575,10 +615,10 @@
             const w = window.innerWidth;
             const h = window.innerHeight;
             const thick = 100;
-            // 바닥에는 약간의 마찰을 줌
-            floor = Matter.Bodies.rectangle(w/2, h + thick/2, w + 200, thick, { isStatic: true, friction: 0.8 });
-            leftWall = Matter.Bodies.rectangle(-thick/2, h/2, thick, h * 3, { isStatic: true });
-            rightWall = Matter.Bodies.rectangle(w + thick/2, h/2, thick, h * 3, { isStatic: true });
+            // 마찰력을 줄여 벽과 바닥에 심하게 들러붙지 않게 함
+            floor = Matter.Bodies.rectangle(w/2, h + thick/2, w + 200, thick, { isStatic: true, friction: 0.3 });
+            leftWall = Matter.Bodies.rectangle(-thick/2, h/2, thick, h * 3, { isStatic: true, friction: 0.1 });
+            rightWall = Matter.Bodies.rectangle(w + thick/2, h/2, thick, h * 3, { isStatic: true, friction: 0.1 });
             
             let newBodies = [floor, leftWall, rightWall];
 
@@ -594,7 +634,7 @@
                         rect.height, 
                         { 
                             isStatic: true, 
-                            friction: 0.8,
+                            friction: 0.2, // 패널 마찰력도 낮춰 부드럽게 미끄러지도록 함
                             chamfer: { radius: 24 } // rounded-3xl(24px)에 맞춘 둥근 모서리
                         }
                     );
@@ -605,11 +645,24 @@
             Matter.World.add(world, newBodies);
         }
 
-        window.toggleStackingMode = function(checked) {
+        window.toggleStackingMode = async function(checked) {
             window.settings.stackingMode = checked;
             window.saveData();
 
             if (checked) {
+                // iOS 13+ 기기 기울임(DeviceOrientation) 권한 요청 처리
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    try {
+                        const permissionState = await DeviceOrientationEvent.requestPermission();
+                        if (permissionState === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation);
+                        }
+                    } catch (e) { console.error('기기 기울임 권한 요청 에러:', e); }
+                } else {
+                    // 안드로이드 및 지원 환경 바로 이벤트 등록
+                    window.addEventListener('deviceorientation', handleOrientation);
+                }
+
                 initMatter();
                 updateWalls(); // 모드 진입 시 플랫폼 즉시 생성
                 Matter.Runner.run(matterRunner, engine);
@@ -621,14 +674,27 @@
                         let objRestitution = 0.2;
                         if (obj.id === 'rainbow') objRestitution = 1.05; // 레인보우 풉 매우 높은 탄성 적용
                         
-                        obj.body = Matter.Bodies.circle(obj.x + obj.size/2, obj.y + obj.size/2, obj.size/2, {
-                            restitution: objRestitution, friction: 0.8, density: 0.002, // 탄성(restitution)을 낮춤 (레인보우 제외)
-                            frictionAir: obj.id === 'ghost' ? 0.05 : 0.01 // 공기 저항 높임
+                        // 히트박스 안정화를 위해 물리 바디 반지름을 시각적 크기보다 약간 작게(-20%) 설정
+                        const physicsRadius = (obj.size / 2) * 0.8;
+                        
+                        obj.body = Matter.Bodies.circle(obj.x + obj.size/2, obj.y + obj.size/2, physicsRadius, {
+                            restitution: objRestitution, 
+                            friction: 0.2, // 마찰력을 대폭 줄여 서로 끼이는 현상 방지
+                            slop: 0.1, // 겹침을 미세하게 허용하여 바닥에서 떨리는 진동(Jitter) 완화
+                            density: 0.002,
+                            frictionAir: obj.id === 'ghost' ? 0.05 : 0.01
                         });
                         Matter.World.add(world, obj.body);
                     }
                 });
             } else {
+                // 기울임 이벤트 해제 및 기본 중력으로 리셋
+                window.removeEventListener('deviceorientation', handleOrientation);
+                if (engine && engine.world) {
+                    engine.world.gravity.x = 0;
+                    engine.world.gravity.y = 1;
+                }
+
                 if (matterRunner) Matter.Runner.stop(matterRunner);
                 const container = document.getElementById('matter-container');
                 if (container) container.style.pointerEvents = 'none';
@@ -1078,9 +1144,13 @@
                 let objRestitution = 0.2;
                 if (skin.id === 'rainbow') objRestitution = 1.05; // 레인보우 풉 매우 높은 탄성 적용
                 
-                body = Matter.Bodies.circle(x + size/2, y + size/2, size/2, {
-                    restitution: objRestitution, // 탄성(바운스)을 줄여 덜 튀어오르게 변경 (레인보우 제외)
-                    friction: 0.8,
+                // 히트박스 안정화를 위해 물리 바디 반지름을 시각적 크기보다 약간 작게(-20%) 설정
+                const physicsRadius = (size / 2) * 0.8;
+                
+                body = Matter.Bodies.circle(x + size/2, y + size/2, physicsRadius, {
+                    restitution: objRestitution, 
+                    friction: 0.2, // 마찰력을 대폭 줄여 서로 끼이는 현상 방지
+                    slop: 0.1, // 겹침을 미세하게 허용하여 바닥에서 떨리는 진동(Jitter) 완화
                     density: 0.002,
                     frictionAir: skin.id === 'ghost' ? 0.05 : 0.01
                 });
