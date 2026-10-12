@@ -69,83 +69,106 @@
             transition: opacity 0.5s ease;
         }
 
+        .poop-skin-inner {
+            display: inline-block;
+            will-change: transform, opacity, filter;
+            transform-origin: center center;
+        }
+
         .skin-default { }
-        .skin-red { filter: hue-rotate(-40deg) saturate(2); }
-        .skin-yellow { filter: sepia(100%) saturate(1000%) hue-rotate(10deg) brightness(1.2) contrast(1.1); }
-        .skin-green { filter: hue-rotate(80deg) saturate(1.5); }
-        .skin-blue { filter: hue-rotate(180deg) saturate(1.5); }
-        .skin-purple { filter: hue-rotate(240deg) saturate(1.5); }
-        .skin-pink { filter: hue-rotate(290deg) saturate(1.5) brightness(1.2); }
-        .skin-silver { filter: grayscale(1) brightness(1.5); }
+        .skin-red { filter: hue-rotate(-40deg) saturate(2.5); -webkit-filter: hue-rotate(-40deg) saturate(2.5); }
+        .skin-yellow { filter: sepia(100%) saturate(1000%) hue-rotate(10deg) brightness(1.3) contrast(1.2); -webkit-filter: sepia(100%) saturate(1000%) hue-rotate(10deg) brightness(1.3) contrast(1.2); }
+        .skin-green { filter: hue-rotate(80deg) saturate(2) brightness(1.2); -webkit-filter: hue-rotate(80deg) saturate(2) brightness(1.2); }
+        .skin-blue { filter: hue-rotate(180deg) saturate(2.5) brightness(1.2); -webkit-filter: hue-rotate(180deg) saturate(2.5) brightness(1.2); }
+        .skin-purple { filter: hue-rotate(240deg) saturate(2.5) brightness(1.3); -webkit-filter: hue-rotate(240deg) saturate(2.5) brightness(1.3); }
+        .skin-pink { filter: hue-rotate(290deg) saturate(2.5) brightness(1.3); -webkit-filter: hue-rotate(290deg) saturate(2.5) brightness(1.3); }
+        .skin-silver { filter: grayscale(1) brightness(2.2) drop-shadow(0 0 10px rgba(255,255,255,0.9)); -webkit-filter: grayscale(1) brightness(2.2) drop-shadow(0 0 10px rgba(255,255,255,0.9)); }
         
         @keyframes sparkle {
             0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
             50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
         }
 
-        @keyframes diamondShine {
-            0%, 100% { filter: hue-rotate(180deg) saturate(0.5) brightness(2.5); text-shadow: 0 0 25px rgba(0, 255, 255, 1); }
-            50% { filter: hue-rotate(210deg) saturate(1.5) brightness(3.5); text-shadow: 0 0 40px rgba(255, 255, 255, 1); }
-        }
-
+        /* 골드 풉: 선명한 금색 */
         .skin-gold { 
-            filter: sepia(1) hue-rotate(-30deg) saturate(4) brightness(1.3); 
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8); 
+            filter: sepia(100%) saturate(900%) hue-rotate(-25deg) brightness(1.4) contrast(1.3) drop-shadow(0 0 16px rgba(255, 215, 0, 1)); 
+            -webkit-filter: sepia(100%) saturate(900%) hue-rotate(-25deg) brightness(1.4) contrast(1.3) drop-shadow(0 0 16px rgba(255, 215, 0, 1));
             position: relative;
-        }
-        .skin-gold::after {
-            content: '✨';
-            position: absolute;
-            top: -10px; right: -10px;
-            font-size: 1rem;
-            animation: sparkle 1.5s infinite;
+            display: inline-block;
         }
 
+        /* 다이아몬드 풉: 하늘색 및 빛남 */
+        @keyframes diamondShine {
+            0%, 100% { filter: hue-rotate(150deg) saturate(4) brightness(2.2) drop-shadow(0 0 18px rgba(56, 189, 248, 1)); -webkit-filter: hue-rotate(150deg) saturate(4) brightness(2.2) drop-shadow(0 0 18px rgba(56, 189, 248, 1)); }
+            50% { filter: hue-rotate(170deg) saturate(5) brightness(3.0) drop-shadow(0 0 28px rgba(186, 230, 253, 1)); -webkit-filter: hue-rotate(170deg) saturate(5) brightness(3.0) drop-shadow(0 0 28px rgba(186, 230, 253, 1)); }
+        }
         .skin-diamond { 
             animation: diamondShine 1.5s ease-in-out infinite; 
             position: relative;
+            display: inline-block;
         }
-        .skin-diamond::before, .skin-diamond::after {
-            content: '✨';
-            position: absolute;
-            font-size: 0.8rem;
-            filter: hue-rotate(180deg) brightness(2);
-        }
-        .skin-diamond::before { top: -5px; left: -5px; animation: sparkle 1.2s infinite; }
-        .skin-diamond::after { bottom: -5px; right: -5px; animation: sparkle 1.2s infinite 0.6s; }
 
+        /* 고스트 풉: 서서히 투명해졌다 나타나는 애니메이션 */
         @keyframes ghostFade {
-            0%, 100% { opacity: 0.2; filter: grayscale(1) blur(1px); }
-            50% { opacity: 0.9; filter: grayscale(1) blur(0px); text-shadow: 0 0 20px rgba(255,255,255,0.8); }
+            0%, 100% { opacity: 0.15; filter: brightness(4) grayscale(1) drop-shadow(0 0 8px rgba(255,255,255,0.4)); -webkit-filter: brightness(4) grayscale(1) drop-shadow(0 0 8px rgba(255,255,255,0.4)); }
+            50% { opacity: 0.95; filter: brightness(6) grayscale(1) drop-shadow(0 0 25px rgba(255,255,255,1)); -webkit-filter: brightness(6) grayscale(1) drop-shadow(0 0 25px rgba(255,255,255,1)); }
         }
         .skin-ghost { 
-            animation: ghostFade 4s ease-in-out infinite; 
-            transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* For teleport */
-        }
-        
-        @keyframes orbitSatellites {
-            0% { transform: rotate(0deg) translateX(30px) rotate(0deg); }
-            100% { transform: rotate(360deg) translateX(30px) rotate(-360deg); }
-        }
-        .skin-galaxy { 
-            filter: invert(1) hue-rotate(180deg); 
-            text-shadow: 0 0 25px rgba(128,0,255,1); 
+            animation: ghostFade 2.5s ease-in-out infinite !important; 
+            display: inline-block;
             position: relative;
         }
-        .skin-galaxy::before, .skin-galaxy::after {
+        
+        /* 갤럭시 풉: 단일 위성 정원 공전 및 자전 애니메이션 */
+        @keyframes orbitSatellite {
+            0% { transform: translate(-50%, -50%) rotate(0deg) translateX(22px) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg) translateX(22px) rotate(720deg); }
+        }
+        .skin-galaxy { 
+            filter: brightness(2.5) sepia(40%) hue-rotate(85deg) drop-shadow(0 0 18px rgba(187, 247, 208, 1)); 
+            -webkit-filter: brightness(2.5) sepia(40%) hue-rotate(85deg) drop-shadow(0 0 18px rgba(187, 247, 208, 1));
+            position: relative;
+            display: inline-block;
+        }
+        .skin-galaxy::before {
             content: '💩';
             position: absolute;
-            font-size: 0.5rem;
-            top: 50%; left: 50%;
-            margin-top: -0.25rem; margin-left: -0.25rem;
-            filter: invert(0) hue-rotate(90deg) brightness(1.5);
+            font-size: 0.55rem;
+            top: 50%; 
+            left: 50%;
+            filter: brightness(2) hue-rotate(120deg);
+            animation: orbitSatellite 6s linear infinite;
+            will-change: transform;
+            pointer-events: none;
         }
-        .skin-galaxy::before { animation: orbitSatellites 2s linear infinite; }
-        .skin-galaxy::after { animation: orbitSatellites 2s linear infinite reverse; animation-delay: -1s; }
 
-        .skin-cyberpunk { filter: hue-rotate(280deg) saturate(3) contrast(2) drop-shadow(4px 4px 0px #0ff) drop-shadow(-4px -4px 0px #f0f); }
+        .bouncing-item-wrapper .skin-galaxy::before {
+            display: none !important;
+        }
+        .pop-box-galaxy {
+            position: relative;
+            display: inline-block;
+        }
+        .pop-box-galaxy::before {
+            content: '💩';
+            position: absolute;
+            font-size: 0.55rem;
+            top: 50%; 
+            left: 50%;
+            filter: brightness(2) hue-rotate(120deg);
+            animation: orbitSatellite 6s linear infinite;
+            will-change: transform;
+            pointer-events: none;
+        }
+
+        /* 사이버펑크 풉 */
+        .skin-cyberpunk { 
+            filter: hue-rotate(280deg) saturate(3) contrast(2) drop-shadow(3px 3px 0px #0ff) drop-shadow(-3px -3px 0px #f0f); 
+            -webkit-filter: hue-rotate(280deg) saturate(3) contrast(2) drop-shadow(3px 3px 0px #0ff) drop-shadow(-3px -3px 0px #f0f);
+            display: inline-block;
+        }
         
-        /* Updated Rainbow with moving gradient background on text */
+        /* 레인보우 풉 */
         @keyframes rainbowPan {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
@@ -154,21 +177,25 @@
         .skin-rainbow {
             background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff, #ff0000);
             background-size: 200% auto;
-            color: transparent;
-            -webkit-background-clip: text;
-            background-clip: text;
+            color: transparent !important;
+            -webkit-background-clip: text !important;
+            background-clip: text !important;
             animation: rainbowPan 3s linear infinite;
             filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8));
-            /* Override standard emoji rendering if possible to show background */
-            -webkit-text-fill-color: transparent; 
+            -webkit-text-fill-color: transparent !important; 
+            display: inline-block;
         }
 
+        /* 팝업 애니메이션 전용 레이어 */
         @keyframes spawnPopHighTier {
-            0% { transform: scale(0.1) rotate(-180deg); filter: brightness(3); opacity: 0; }
-            50% { transform: scale(1.5) rotate(20deg); filter: brightness(2); }
-            100% { transform: scale(1) rotate(0deg); filter: brightness(1); opacity: 1; }
+            0% { transform: scale(0.1) rotate(-180deg); opacity: 0; }
+            50% { transform: scale(1.4) rotate(20deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
         }
-        .spawn-high-tier { animation: spawnPopHighTier 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .spawn-high-tier { 
+            animation: spawnPopHighTier 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+            display: inline-block;
+        }
         
         .particle {
             position: absolute;
@@ -189,7 +216,6 @@
             100% { transform: translate(0) }
         }
 
-        /* Utility to hide elements smoothly */
         .fade-out { opacity: 0; transition: opacity 0.3s; pointer-events: none; }
     </style>
 </head>
@@ -270,9 +296,25 @@
 
             <div id="content-help" class="hidden space-y-4">
                 <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
-                    <h3 class="text-white font-medium text-sm mb-3">⏱ 집중 시간 배수 시스템</h3>
+                    <h3 class="text-white font-medium text-sm mb-3 flex items-center space-x-2">
+                        <span>📌</span>
+                        <span>기본 규칙 안내</span>
+                    </h3>
+                    <ul class="text-xs text-neutral-300 space-y-2 leading-relaxed">
+                        <li>• <b class="text-white">자동 생성:</b> 타이머 실행 시 15초마다 보유 중인 스킨의 확률에 따라 똥이 자동으로 나타납니다.</li>
+                        <li>• <b class="text-white">일시 정지:</b> 타이머를 멈추면 똥들의 이동이 멈추고 회전 이펙트만 유지됩니다.</li>
+                        <li>• <b class="text-white">집중 보수:</b> 중단 없이 지속할수록 최대 3.0배의 집중 multiplier 보너스를 얻습니다.</li>
+                        <li>• <b class="text-white">정산 & 리셋:</b> 'Reset' 버튼을 눌러 집중 결과를 정산하고 💩 재화를 받으세요.</li>
+                    </ul>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
+                    <h3 class="text-white font-medium text-sm mb-3 flex items-center space-x-2">
+                        <span>⏱</span>
+                        <span>집중 시간 배수 시스템</span>
+                    </h3>
                     <p class="text-[11px] text-neutral-400 leading-relaxed mb-4">
-                        타이머를 끊지 않고 오랫동안 유지할수록, 모아둔 재화에 보너스 배수가 적용됩니다. 리셋(정산)을 진행할 때 최종 배수만큼 곱해져 지급됩니다.
+                        타이머를 끊지 않고 오랫동안 유지할수록, 모아둔 재화에 보너스 배수가 적용됩니다.
                     </p>
                     <ul class="text-xs text-neutral-300 space-y-3">
                         <li class="flex justify-between items-center"><span class="text-neutral-500">0분 ~ 10분</span> <span class="font-mono text-neutral-400 px-2 py-0.5 rounded bg-white/10">x1.0</span></li>
@@ -281,6 +323,14 @@
                         <li class="flex justify-between items-center"><span class="text-neutral-200">60분 ~ 120분</span> <span class="font-mono text-rose-400 px-2 py-0.5 rounded bg-rose-500/20">x2.0</span></li>
                         <li class="flex justify-between items-center"><span class="text-white font-medium">120분 이상</span> <span class="font-mono text-purple-400 font-bold px-2 py-0.5 rounded bg-purple-500/20 shadow-[0_0_8px_rgba(168,85,247,0.4)]">x3.0</span></li>
                     </ul>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/5">
+                    <h3 class="text-white font-medium text-sm mb-3 flex items-center space-x-2">
+                        <span>🎲</span>
+                        <span>스킨 출현 확률 & 보상 정보</span>
+                    </h3>
+                    <div id="help-probabilities-list" class="space-y-2.5 max-h-60 overflow-y-auto pr-1"></div>
                 </div>
             </div>
         </div>
@@ -300,11 +350,11 @@
             </div>
         </div>
 
-        <div id="session-stats-container" class="mb-6 flex items-center justify-center opacity-0 transition-opacity duration-500 h-8">
-            <div class="flex items-center bg-white/5 border border-white/10 p-1 rounded-full backdrop-blur-md shadow-lg">
-                <div class="px-3 py-1 rounded-full bg-black/60 flex items-center space-x-2 border border-white/5">
+        <div id="session-stats-container" class="mb-6 flex items-center justify-center opacity-0 transition-opacity duration-500 min-h-[2.5rem]">
+            <div class="flex items-center bg-white/5 border border-white/10 p-1.5 px-3 rounded-full backdrop-blur-md shadow-lg space-x-2">
+                <div class="px-3 py-1.5 rounded-full bg-black/60 flex items-center space-x-3 border border-white/5">
                     <span id="session-count" class="text-sm font-bold text-white font-mono tracking-tight">0</span>
-                    <span id="session-recent-icon" class="text-sm transition-all duration-300 drop-shadow-md">💩</span>
+                    <span id="session-recent-icon" class="text-2xl sm:text-3xl inline-block transition-all duration-300 drop-shadow-md select-none">💩</span>
                 </div>
                 <div id="multiplier-badge" class="ml-1.5 px-2 py-1 rounded-full bg-white/10 text-neutral-400 text-xs font-bold font-mono transition-colors duration-300">
                     x1.0
@@ -391,18 +441,18 @@
             poops: 0,
             skins: {
                 red: { id: 'red', name: 'Red Poop', cost: 2, chance: 30, reward: 2, desc: '등장: 30% | 보상: 2', class: 'skin-red', owned: false, isHighTier: false },
-                yellow: { id: 'yellow', name: 'Yellow Poop', cost: 5, chance: 20, reward: 3, desc: '등장: 20% | 보상: 3', class: 'skin-yellow', owned: false, isHighTier: false },
-                green: { id: 'green', name: 'Green Poop', cost: 15, chance: 15, reward: 5, desc: '등장: 15% | 보상: 5', class: 'skin-green', owned: false, isHighTier: false },
-                blue: { id: 'blue', name: 'Blue Poop', cost: 50, chance: 10, reward: 10, desc: '등장: 10% | 보상: 10', class: 'skin-blue', owned: false, isHighTier: false },
-                purple: { id: 'purple', name: 'Purple Poop', cost: 150, chance: 5, reward: 20, desc: '등장: 5% | 보상: 20', class: 'skin-purple', owned: false, isHighTier: false },
-                pink: { id: 'pink', name: 'Pink Poop', cost: 300, chance: 3, reward: 50, desc: '등장: 3% | 보상: 50', class: 'skin-pink', owned: false, isHighTier: false },
-                silver: { id: 'silver', name: 'Silver Poop', cost: 750, chance: 1, reward: 150, desc: '등장: 1% | 보상: 150', class: 'skin-silver', owned: false, isHighTier: true },
-                gold: { id: 'gold', name: 'Golden Poop', cost: 1500, chance: 0.5, reward: 400, desc: '등장: 0.5% | 보상: 400', class: 'skin-gold', owned: false, isHighTier: true },
-                diamond: { id: 'diamond', name: 'Diamond Poop', cost: 3000, chance: 0.2, reward: 1000, desc: '등장: 0.2% | 보상: 1000', class: 'skin-diamond', owned: false, isHighTier: true },
-                ghost: { id: 'ghost', name: 'Ghost Poop', cost: 5000, chance: 0.1, reward: 2000, desc: '등장: 0.1% | 보상: 2000', class: 'skin-ghost', owned: false, isHighTier: true },
-                galaxy: { id: 'galaxy', name: 'Galaxy Poop', cost: 7500, chance: 0.05, reward: 5000, desc: '등장: 0.05% | 보상: 5000', class: 'skin-galaxy', owned: false, isHighTier: true },
-                cyberpunk: { id: 'cyberpunk', name: 'Cyberpunk Poop', cost: 15000, chance: 0.01, reward: 20000, desc: '등장: 0.01% | 보상: 20000', class: 'skin-cyberpunk', owned: false, isHighTier: true },
-                rainbow: { id: 'rainbow', name: 'Rainbow Poop', cost: 100000, chance: 0.001, reward: 500000, desc: '등장: 0.001% | 보상: 500000', class: 'skin-rainbow', owned: false, isHighTier: true }
+                yellow: { id: 'yellow', name: 'Yellow Poop', cost: 5, chance: 20, reward: 2, desc: '등장: 20% | 보상: 2', class: 'skin-yellow', owned: false, isHighTier: false },
+                green: { id: 'green', name: 'Green Poop', cost: 15, chance: 15, reward: 3, desc: '등장: 15% | 보상: 3', class: 'skin-green', owned: false, isHighTier: false },
+                blue: { id: 'blue', name: 'Blue Poop', cost: 50, chance: 10, reward: 4, desc: '등장: 10% | 보상: 4', class: 'skin-blue', owned: false, isHighTier: false },
+                purple: { id: 'purple', name: 'Purple Poop', cost: 150, chance: 5, reward: 7, desc: '등장: 5% | 보상: 7', class: 'skin-purple', owned: false, isHighTier: false },
+                pink: { id: 'pink', name: 'Pink Poop', cost: 300, chance: 3, reward: 17, desc: '등장: 3% | 보상: 17', class: 'skin-pink', owned: false, isHighTier: false },
+                silver: { id: 'silver', name: 'Silver Poop', cost: 750, chance: 1, reward: 50, desc: '등장: 1% | 보상: 50', class: 'skin-silver', owned: false, isHighTier: true },
+                gold: { id: 'gold', name: 'Golden Poop', cost: 1500, chance: 0.5, reward: 135, desc: '등장: 0.5% | 보상: 135', class: 'skin-gold', owned: false, isHighTier: true },
+                diamond: { id: 'diamond', name: 'Diamond Poop', cost: 3000, chance: 0.2, reward: 330, desc: '등장: 0.2% | 보상: 330', class: 'skin-diamond', owned: false, isHighTier: true },
+                ghost: { id: 'ghost', name: 'Ghost Poop', cost: 5000, chance: 0.1, reward: 660, desc: '등장: 0.1% | 보상: 660', class: 'skin-ghost', owned: false, isHighTier: true },
+                galaxy: { id: 'galaxy', name: 'Galaxy Poop', cost: 7500, chance: 0.05, reward: 1650, desc: '등장: 0.05% | 보상: 1650', class: 'skin-galaxy', owned: false, isHighTier: true },
+                cyberpunk: { id: 'cyberpunk', name: 'Cyberpunk Poop', cost: 15000, chance: 0.01, reward: 6600, desc: '등장: 0.01% | 보상: 6600', class: 'skin-cyberpunk', owned: false, isHighTier: true },
+                rainbow: { id: 'rainbow', name: 'Rainbow Poop', cost: 100000, chance: 0.001, reward: 160000, desc: '등장: 0.001% | 보상: 160000', class: 'skin-rainbow', owned: false, isHighTier: true }
             }
         };
 
@@ -544,7 +594,53 @@
 
             document.getElementById(`tab-${tabId}`).className = "flex-1 py-2 text-sm font-medium rounded-lg bg-white/10 text-white transition-colors";
             document.getElementById(`content-${tabId}`).classList.remove('hidden');
+
+            if (tabId === 'help') {
+                renderHelpProbabilities();
+            }
         }
+
+        window.renderHelpProbabilities = function() {
+            const listContainer = document.getElementById('help-probabilities-list');
+            if (!listContainer) return;
+            listContainer.innerHTML = '';
+
+            const defaultRow = document.createElement('div');
+            defaultRow.className = "flex justify-between items-center bg-white/5 p-2 rounded-xl text-xs";
+            defaultRow.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <span class="text-xl">💩</span>
+                    <span class="text-neutral-200 font-medium">기본 똥</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-emerald-400 text-[10px] bg-emerald-500/10 px-1.5 py-0.5 rounded mr-1">기본</span>
+                    <span class="font-mono text-amber-400 font-bold">+1 💩</span>
+                </div>
+            `;
+            listContainer.appendChild(defaultRow);
+
+            Object.values(window.gameState.skins).forEach(skin => {
+                const item = document.createElement('div');
+                item.className = "flex justify-between items-center bg-white/5 p-2 rounded-xl text-xs";
+                const badge = skin.owned 
+                    ? `<span class="text-emerald-400 text-[10px] bg-emerald-500/10 px-1.5 py-0.5 rounded">보유중</span>`
+                    : `<span class="text-neutral-500 text-[10px] bg-white/5 px-1.5 py-0.5 rounded">미보유</span>`;
+
+                item.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xl ${skin.class}">💩</span>
+                        <span class="text-neutral-200 font-medium">${skin.name}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        ${badge}
+                        <span class="font-mono text-neutral-400 text-[11px]">${skin.chance}%</span>
+                        <span class="font-mono text-amber-400 font-bold text-xs">+${skin.reward} 💩</span>
+                    </div>
+                `;
+                listContainer.appendChild(item);
+            });
+        };
+
 
         window.updateMaxPoopsUI = function(val) { document.getElementById('max-poops-val').innerText = `${val}개`; }
         
@@ -684,43 +780,84 @@
         function createParticle(x, y, skinId) {
             const container = document.getElementById('bouncing-container');
             const particle = document.createElement('div');
-            particle.className = 'particle';
             
-            let color = 'rgba(255, 255, 255, 0.5)';
-            if (skinId === 'gold') color = 'rgba(255, 215, 0, 0.6)';
-            else if (skinId === 'diamond') color = 'rgba(0, 255, 255, 0.6)';
-            else if (skinId === 'galaxy') color = 'rgba(128, 0, 255, 0.6)';
-            else if (skinId === 'cyberpunk') color = Math.random() > 0.5 ? 'rgba(0, 255, 255, 0.8)' : 'rgba(255, 0, 255, 0.8)';
-            else if (skinId === 'rainbow') color = `hsla(${Math.random() * 360}, 100%, 60%, 0.7)`;
-            else if (skinId === 'silver') color = 'rgba(200, 200, 200, 0.6)';
+            // 똥 위치 중앙 기준 랜덤 오프셋 계산 (고정 위치가 아닌 무작위 위치에 등장)
+            const offsetX = (Math.random() - 0.5) * 44;
+            const offsetY = (Math.random() - 0.5) * 44;
+            const px = x + 15 + offsetX;
+            const py = y + 15 + offsetY;
+
+            let color = 'rgba(255, 255, 255, 0.7)';
+            let isSparkleEmoji = Math.random() < 0.45; // 45% 확률로 ✨ 광택 이모지 파티클 생성
             
-            particle.style.background = color;
-            particle.style.boxShadow = `0 0 10px ${color}`;
-            
-            let size = 6 + Math.random() * 12;
-            particle.style.width = `${size}px`; particle.style.height = `${size}px`;
-            particle.style.left = `${x + 15}px`; particle.style.top = `${y + 15}px`;
-            
+            if (skinId === 'gold') color = 'rgba(255, 215, 0, 0.95)';
+            else if (skinId === 'diamond') color = 'rgba(56, 189, 248, 0.95)'; // 선명한 하늘색 (Sky Blue)
+            else if (skinId === 'ghost') color = 'rgba(255, 255, 255, 0.95)';
+            else if (skinId === 'galaxy') color = 'rgba(187, 247, 208, 0.9)';
+            else if (skinId === 'cyberpunk') color = Math.random() > 0.5 ? 'rgba(0, 255, 255, 0.9)' : 'rgba(255, 0, 255, 0.9)';
+            else if (skinId === 'rainbow') color = `hsla(${Math.random() * 360}, 100%, 70%, 0.85)`;
+            else if (skinId === 'silver') color = 'rgba(220, 220, 220, 0.9)';
+
+            if (isSparkleEmoji && (skinId === 'diamond' || skinId === 'gold' || skinId === 'silver' || skinId === 'rainbow' || skinId === 'galaxy')) {
+                particle.className = 'particle-sparkle-emoji';
+                particle.innerText = '✨';
+                particle.style.position = 'absolute';
+                particle.style.pointerEvents = 'none';
+                particle.style.zIndex = '15';
+                particle.style.fontSize = `${0.6 + Math.random() * 0.5}rem`;
+                particle.style.left = `${px}px`;
+                particle.style.top = `${py}px`;
+                particle.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+                particle.style.willChange = 'transform, opacity';
+                
+                if (skinId === 'diamond') {
+                    particle.style.filter = 'drop-shadow(0 0 8px rgba(56, 189, 248, 1)) hue-rotate(160deg) brightness(2.2)';
+                } else if (skinId === 'gold') {
+                    particle.style.filter = 'drop-shadow(0 0 8px rgba(255, 215, 0, 1))';
+                }
+            } else {
+                particle.className = 'particle';
+                particle.style.background = color;
+                particle.style.boxShadow = `0 0 10px ${color}`;
+                let size = 5 + Math.random() * 10;
+                particle.style.width = `${size}px`; 
+                particle.style.height = `${size}px`;
+                particle.style.left = `${px}px`; 
+                particle.style.top = `${py}px`;
+            }
+
             container.appendChild(particle);
             setTimeout(() => {
                 particle.style.opacity = '0';
-                particle.style.transform = `scale(0.1) translate(${(Math.random() - 0.5) * 80}px, ${(Math.random() - 0.5) * 80}px)`;
-            }, 50);
-            setTimeout(() => { if(particle.parentNode) particle.remove(); }, 850);
+                particle.style.transform = `scale(${isSparkleEmoji ? 1.3 : 0.1}) translate(${(Math.random() - 0.5) * 30}px, ${(Math.random() - 0.5) * 30}px)`;
+            }, 40);
+            setTimeout(() => { if (particle.parentNode) particle.remove(); }, 700);
         }
 
         function addBouncingPoopElement(skin) {
             const container = document.getElementById('bouncing-container');
             const wrapper = document.createElement('div');
+            const popBox = document.createElement('div');
             const inner = document.createElement('div');
             
             wrapper.className = 'bouncing-item-wrapper';
-            inner.innerText = '💩';
-            inner.className = skin.class;
-
+            
+            // 고등급 출현 애니메이션 및 갤럭시 전용 위성 박스 처리
+            const isGalaxy = skin.id === 'galaxy';
             if (skin.isHighTier) {
-                inner.classList.add('spawn-high-tier');
-                if (skin.id === 'cyberpunk') inner.classList.add('glitch-anim');
+                popBox.className = isGalaxy ? 'spawn-high-tier pop-box-galaxy' : 'spawn-high-tier';
+                setTimeout(() => {
+                    popBox.className = isGalaxy ? 'pop-box-galaxy' : '';
+                }, 800);
+            } else if (isGalaxy) {
+                popBox.className = 'pop-box-galaxy';
+            }
+
+            inner.innerText = '💩';
+            inner.className = `poop-skin-inner ${skin.class}`;
+
+            if (skin.isHighTier && skin.id === 'cyberpunk') {
+                inner.classList.add('glitch-anim');
             }
 
             const width = window.innerWidth;
@@ -729,25 +866,27 @@
             let x = Math.random() * (width - 60);
             let y = Math.random() * (height - 60);
             
-            // Adjust speeds based on skin for less monotonous movement
             let speedMult = 1;
             if (skin.isHighTier) speedMult = 1.2;
             if (skin.id === 'rainbow') speedMult = 2.0;
-            if (skin.id === 'ghost') speedMult = 0.5; // Slow, creepy
+            if (skin.id === 'ghost') speedMult = 0.5;
 
             let vx = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 1.5) * speedMult;
             let vy = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 1.5) * speedMult;
             
-            wrapper.appendChild(inner);
+            popBox.appendChild(inner);
+            wrapper.appendChild(popBox);
             container.appendChild(wrapper);
             
             let rotation = Math.random() * 360;
             let rotationSpeed = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 3);
-            if (skin.id === 'rainbow') rotationSpeed *= 3; // 레인보우는 더 빠르게 회전
+            if (skin.id === 'rainbow') rotationSpeed *= 3;
 
             bouncingObjects.push({ 
-                element: wrapper, x, y, vx, vy, 
-                baseVx: vx, baseVy: vy, // store base velocity for reset
+                element: wrapper,
+                inner: inner,
+                x, y, vx, vy, 
+                baseVx: vx, baseVy: vy,
                 rotation: rotation,
                 rotationSpeed: rotationSpeed,
                 size: 35, isHighTier: skin.isHighTier, id: skin.id,
@@ -766,8 +905,10 @@
             document.getElementById('session-count').innerText = sessionState.totalSpawned;
             
             const recentIcon = document.getElementById('session-recent-icon');
-            recentIcon.className = `text-sm transition-all duration-300 drop-shadow-md transform scale-150 ${skin.class}`;
-            setTimeout(() => { recentIcon.classList.remove('scale-150'); }, 300);
+            if (recentIcon) {
+                recentIcon.className = `text-2xl sm:text-3xl inline-block transition-all duration-300 drop-shadow-md transform scale-125 ${skin.class}`;
+                setTimeout(() => { recentIcon.classList.remove('scale-125'); }, 300);
+            }
 
             let limit = window.settings.isUnlimited ? Infinity : window.settings.maxPoopsOnScreen;
             if (limit > 0) {
@@ -796,51 +937,60 @@
 
             bouncingObjects.forEach(obj => {
                 
-                // Advanced Movement Patterns
-                if (obj.id === 'rainbow') {
-                    // 화면 전체를 누비면서 요동치는 움직임
-                    obj.vx = obj.baseVx + Math.cos((now + obj.timeOffset) / 300) * 4;
-                    obj.vy = obj.baseVy + Math.sin((now + obj.timeOffset) / 300) * 4;
-                } else if (obj.id === 'ghost') {
-                    // Ghost: Slow drift, occasional teleport
-                    obj.vx = Math.sin((now + obj.timeOffset) / 2000) * 1;
-                    obj.vy = Math.cos((now + obj.timeOffset) / 1500) * 1;
-                    if (now - obj.lastTeleport > 3000 && Math.random() < 0.005) {
-                        obj.x = Math.random() * (width - 60);
-                        obj.y = Math.random() * (height - 60);
-                        obj.lastTeleport = now;
+                // 타이머 작동 중(isRunning)일 때만 위치 이동 적용
+                if (isRunning) {
+                    if (obj.id === 'rainbow') {
+                        obj.vx = obj.baseVx + Math.cos((now + obj.timeOffset) / 300) * 4;
+                        obj.vy = obj.baseVy + Math.sin((now + obj.timeOffset) / 300) * 4;
+                    } else if (obj.id === 'ghost') {
+                        obj.vx = Math.sin((now + obj.timeOffset) / 2000) * 1;
+                        obj.vy = Math.cos((now + obj.timeOffset) / 1500) * 1;
+                        if (now - obj.lastTeleport > 3000 && Math.random() < 0.005) {
+                            obj.x = Math.random() * (width - 60);
+                            obj.y = Math.random() * (height - 60);
+                            obj.lastTeleport = now;
+                        }
+                    } else if (obj.id === 'cyberpunk') {
+                        if (Math.random() < 0.01) {
+                            obj.x += (Math.random() - 0.5) * 100;
+                            obj.y += (Math.random() - 0.5) * 100;
+                        }
                     }
-                } else if (obj.id === 'cyberpunk') {
-                    if (Math.random() < 0.01) {
-                        obj.x += (Math.random() - 0.5) * 100;
-                        obj.y += (Math.random() - 0.5) * 100;
-                    }
+
+                    obj.x += obj.vx;
+                    obj.y += obj.vy;
+
+                    // Bounce logic
+                    if (obj.x <= 0) { obj.x = 0; obj.vx *= -1; obj.baseVx *= -1; } 
+                    else if (obj.x >= width - obj.size) { obj.x = width - obj.size; obj.vx *= -1; obj.baseVx *= -1; }
+
+                    if (obj.y <= 0) { obj.y = 0; obj.vy *= -1; obj.baseVy *= -1; } 
+                    else if (obj.y >= height - obj.size) { obj.y = height - obj.size; obj.vy *= -1; obj.baseVy *= -1; }
                 }
 
-                obj.x += obj.vx;
-                obj.y += obj.vy;
-                obj.rotation += obj.rotationSpeed; // 빙글빙글 회전
-
-                // Bounce logic
-                if (obj.x <= 0) { obj.x = 0; obj.vx *= -1; obj.baseVx *= -1; } 
-                else if (obj.x >= width - obj.size) { obj.x = width - obj.size; obj.vx *= -1; obj.baseVx *= -1; }
-
-                if (obj.y <= 0) { obj.y = 0; obj.vy *= -1; obj.baseVy *= -1; } 
-                else if (obj.y >= height - obj.size) { obj.y = height - obj.size; obj.vy *= -1; obj.baseVy *= -1; }
+                // 이동이 멈춰도 회전 및 이펙트는 계속 진행
+                obj.rotation += obj.rotationSpeed;
 
                 let finalRotation = obj.rotation;
-                if (obj.id === 'ghost' || obj.id === 'galaxy') finalRotation = 0; // 이 스킨들은 특유의 분위기를 위해 회전 고정
+                if (obj.id === 'ghost') finalRotation = 0; // 고스트 스킨만 플로팅 유지를 위해 회전 고정
 
-                obj.element.style.transform = `translate(${obj.x}px, ${obj.y}px) rotate(${finalRotation}deg)`;
+                // 위치 이동(translation)은 wrapper에, 자체 회전(rotation)은 inner에 분리하여 적용
+                obj.element.style.transform = `translate(${obj.x}px, ${obj.y}px)`;
+                if (obj.inner) {
+                    obj.inner.style.transform = `rotate(${finalRotation}deg)`;
+                }
                 
                 // 파티클 생성 로직
                 if (obj.id === 'rainbow') {
-                    // 레인보우는 훨씬 더 많은 파티클 생성 (거대한 잔상 효과)
                     if (Math.random() < 0.6) {
                         createParticle(obj.x, obj.y, obj.id);
                         createParticle(obj.x + (Math.random()-0.5)*20, obj.y + (Math.random()-0.5)*20, obj.id);
                     }
-                } else if (obj.isHighTier && obj.id !== 'ghost' && Math.random() < 0.05) {
+                } else if (obj.id === 'diamond' || obj.id === 'gold') {
+                    if (Math.random() < 0.35) { // 광택 파티클 무작위 연속 생성
+                        createParticle(obj.x, obj.y, obj.id);
+                    }
+                } else if (obj.isHighTier && Math.random() < 0.15) {
                     createParticle(obj.x, obj.y, obj.id);
                 }
             });
@@ -993,6 +1143,11 @@
             document.getElementById('session-stats-container').classList.add('opacity-0');
             updateTimerDisplayUI(formatTime(0));
             
+            const recentIcon = document.getElementById('session-recent-icon');
+            if (recentIcon) {
+                recentIcon.className = "text-xl sm:text-2xl inline-block transition-all duration-300 drop-shadow-md skin-default";
+            }
+
             // Ensure button is back to Start state
             if (isRunning) toggleTimerPlay();
             
