@@ -325,6 +325,10 @@
             <p class="text-xs text-neutral-400 mb-6">참아낸 똥 정산 리포트</p>
             
             <div class="w-full bg-white/5 rounded-2xl p-5 mb-5 border border-white/5 shadow-inner">
+                <div class="flex justify-between items-center mb-3 pb-3 border-b border-white/10">
+                    <span class="text-xs text-neutral-400 font-medium">총 집중 시간</span>
+                    <span class="font-bold text-white font-mono text-base" id="modal-time-spent">00:00:00</span>
+                </div>
                 <div class="flex justify-between items-center mb-3">
                     <span class="text-xs text-neutral-400 font-medium">기본 획득량</span>
                     <span class="font-bold text-neutral-200 font-mono text-base" id="modal-base-earned">0 💩</span>
@@ -341,9 +345,14 @@
 
             <div class="w-full bg-black/30 rounded-2xl p-4 mb-6 border border-white/5 max-h-48 overflow-y-auto space-y-2" id="modal-spawn-details"></div>
 
-            <button onclick="confirmSettlement()" class="w-full bg-white text-black font-semibold py-4 rounded-2xl hover:bg-neutral-200 transition-all duration-200 active:scale-95 text-base tracking-wide shadow-xl">
-                지갑에 넣기 및 리셋
-            </button>
+            <div class="flex space-x-3 w-full">
+                <button onclick="cancelSettlement()" class="flex-1 bg-neutral-800 text-white font-semibold py-4 rounded-2xl hover:bg-neutral-700 transition-all duration-200 active:scale-95 text-sm border border-white/10">
+                    계속하기 (취소)
+                </button>
+                <button onclick="confirmSettlement()" class="flex-1 bg-white text-black font-semibold py-4 rounded-2xl hover:bg-neutral-200 transition-all duration-200 active:scale-95 text-sm shadow-xl">
+                    정산 및 리셋
+                </button>
+            </div>
         </div>
     </div>
 
@@ -913,6 +922,9 @@
             const currentMult = getMultiplier(elapsedTime).val;
             const finalAmount = Math.floor(sessionState.pendingValue * currentMult);
             
+            const timeFormatted = formatTime(elapsedTime);
+            document.getElementById('modal-time-spent').innerText = `${timeFormatted.hr}:${timeFormatted.min}:${timeFormatted.sec}`;
+            
             document.getElementById('modal-base-earned').innerText = `${sessionState.pendingValue} 💩`;
             document.getElementById('modal-multiplier').innerText = `x${currentMult.toFixed(1)}`;
             document.getElementById('modal-total-earned').innerText = `+ ${finalAmount} 💩`;
@@ -945,6 +957,14 @@
             addPoops(sessionState.finalValue || sessionState.pendingValue); window.saveData(); 
             
             setTimeout(() => { modal.classList.add('hidden'); performActualReset(); }, 300);
+        }
+
+        function cancelSettlement() {
+            const modal = document.getElementById('settlement-modal');
+            const content = document.getElementById('settlement-content');
+            
+            modal.classList.add('opacity-0'); content.classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden'); }, 300);
         }
 
         function performActualReset() {
