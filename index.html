@@ -13,12 +13,14 @@
     <meta name="apple-mobile-web-app-title" content="Stopwatch💩">
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
         :root {
             --apple-glass: rgba(22, 22, 24, 0.35); /* 더 반투명하게 변경 */
             --apple-glass-border: rgba(255, 255, 255, 0.08);
+            --poop-base-opacity: 1;
         }
         body {
             font-family: 'Inter', sans-serif;
@@ -66,8 +68,11 @@
             font-size: 2rem;
             will-change: transform, opacity;
             text-shadow: 0 15px 25px rgba(0,0,0,0.5);
+            opacity: var(--poop-base-opacity);
             transition: opacity 0.5s ease;
         }
+        
+        .bouncing-item-wrapper.fade-out { opacity: 0 !important; pointer-events: none; }
 
         .poop-skin-inner {
             display: inline-block;
@@ -270,6 +275,19 @@
                         <input type="checkbox" id="unlimited-poops" onchange="toggleUnlimitedPoops(this.checked)" class="w-4 h-4 rounded bg-neutral-800 border-neutral-600 accent-white">
                         <span>제한 없음 (발열 주의)</span>
                     </label>
+
+                    <h3 class="text-white font-medium text-sm mb-4 mt-6 border-t border-white/10 pt-4">시각 및 물리 효과</h3>
+                    <label class="flex items-center space-x-3 text-sm text-neutral-300 cursor-pointer select-none mb-4">
+                        <input type="checkbox" id="stacking-mode" onchange="toggleStackingMode(this.checked)" class="w-4 h-4 rounded bg-neutral-800 border-neutral-600 accent-white">
+                        <span>쌓기 모드 (물리 엔진 적용)</span>
+                    </label>
+                    
+                    <div class="flex justify-between text-xs text-neutral-400 mb-2">
+                        <span>똥 투명도</span>
+                        <span id="poop-opacity-val" class="font-mono text-white">100%</span>
+                    </div>
+                    <input type="range" id="poop-opacity-slider" min="10" max="100" value="100" step="5" class="w-full accent-white mb-4" oninput="updatePoopOpacityUI(this.value)" onchange="applyPoopOpacity(this.value)">
+
                     <p class="text-[10px] text-amber-500 mb-4 leading-relaxed">
                         표시 개수를 0개로 설정 시, 배경 똥 애니메이션과 상단 재화/메뉴가 사라져 순수 타이머에 집중할 수 있습니다. (카운트는 정상 진행)
                     </p>
@@ -342,7 +360,7 @@
     <div id="bouncing-container" class="absolute inset-0 overflow-hidden pointer-events-none z-10"></div>
 
     <!-- Compact Timer Area -->
-    <div class="glass-panel rounded-3xl p-6 md:p-8 w-auto max-w-lg shadow-2xl relative z-30 flex flex-col items-center justify-center transform transition-all">
+    <div id="timer-panel" class="glass-panel rounded-3xl p-6 md:p-8 w-auto max-w-lg shadow-2xl relative z-30 flex flex-col items-center justify-center transform transition-all">
         
         <div class="text-center mb-2">
             <div id="timer-display" class="font-mono text-5xl sm:text-6xl md:text-7xl font-semibold tracking-tighter text-white mb-1 tabular-nums">
@@ -458,8 +476,12 @@
 
         let sessionState = { pendingValue: 0, spawnCounts: {}, totalSpawned: 0, finalValue: 0, autoSpawned: 0 };
 
-        window.settings = { maxPoopsOnScreen: 30, isUnlimited: false, showSeconds: true, showMs: true };
+        window.settings = { maxPoopsOnScreen: 30, isUnlimited: false, showSeconds: true, showMs: true, stackingMode: false, poopOpacity: 100 };
         window.debugClicks = {};
+
+        // 물리 엔진 (Matter.js) 전역 변수
+        let engine, world, matterRender, matterRunner, mouseConstraint;
+        let floor, leftWall, rightWall, timerBody;
 
         window.saveData = function() {
             try {
@@ -485,6 +507,155 @@
                     if (data.settings) window.settings = { ...window.settings, ...data.settings };
                 }
             } catch(e) { console.error('Failed to load', e); }
+        };
+
+        function initMatter() {
+            if (engine) return;
+            engine = Matter.Engine.create();
+            world = engine.world;
+            
+            const canvasContainer = document.createElement('div');
+            canvasContainer.id = 'matter-container';
+            canvasContainer.style.position = 'absolute';
+            canvasContainer.style.inset = '0';
+            canvasContainer.style.zIndex = '15'; // UI 패널 뒤, 시각 효과(10) 앞에 배치
+            canvasContainer.style.overflow = 'hidden';
+            canvasContainer.style.pointerEvents = window.settings.stackingMode ? 'auto' : 'none';
+            document.body.appendChild(canvasContainer);
+            
+            matterRender = Matter.Render.create({
+                element: canvasContainer,
+                engine: engine,
+                options: { width: window.innerWidth, height: window.innerHeight, wireframes: false, background: 'transparent' }
+            });
+            matterRender.canvas.style.opacity = '0'; // 캔버스는 투명하게, 클릭 이벤트만 캡처
+            
+            Matter.Render.run(matterRender);
+            matterRunner = Matter.Runner.create();
+            
+            updateWalls();
+            window.addEventListener('resize', updateWalls);
+            
+            const mouse = Matter.Mouse.create(matterRender.canvas);
+            mouseConstraint = Matter.MouseConstraint.create(engine, {
+                mouse: mouse,
+                // 드래그할 때 너무 세게 끌려가지 않도록 탄성(stiffness)을 0.2 -> 0.05로 낮춤
+                constraint: { stiffness: 0.05, render: { visible: false } }
+            });
+            Matter.World.add(world, mouseConstraint);
+            matterRender.mouse = mouse;
+            
+            // 타이머 패널 크기 변경 감지하여 벽(플랫폼) 업데이트
+            const timerPanel = document.getElementById('timer-panel');
+            if (timerPanel) {
+                const resizeObserver = new ResizeObserver(() => {
+                    if (window.settings.stackingMode) updateWalls();
+                });
+                resizeObserver.observe(timerPanel);
+            }
+            
+            // 고스트 스킨 무중력 효과 적용 (물리 엔진 업데이트 직전 위로 힘을 가함)
+            Matter.Events.on(engine, 'beforeUpdate', function() {
+                bouncingObjects.forEach(obj => {
+                    if (obj.body) {
+                        if (obj.id === 'ghost') {
+                            // 위로 너무 둥둥 떠다니지 않도록 반중력 수치를 낮춤 (-0.00085 -> -0.00065)
+                            Matter.Body.applyForce(obj.body, obj.body.position, { x: 0, y: -0.00065 * obj.body.mass });
+                        }
+                    }
+                });
+            });
+        }
+
+        function updateWalls() {
+            if (!world) return;
+            const bodiesToRemove = [floor, leftWall, rightWall, timerBody].filter(Boolean);
+            if (bodiesToRemove.length > 0) Matter.World.remove(world, bodiesToRemove);
+            
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const thick = 100;
+            // 바닥에는 약간의 마찰을 줌
+            floor = Matter.Bodies.rectangle(w/2, h + thick/2, w + 200, thick, { isStatic: true, friction: 0.8 });
+            leftWall = Matter.Bodies.rectangle(-thick/2, h/2, thick, h * 3, { isStatic: true });
+            rightWall = Matter.Bodies.rectangle(w + thick/2, h/2, thick, h * 3, { isStatic: true });
+            
+            let newBodies = [floor, leftWall, rightWall];
+
+            // 타이머 패널을 물리적인 플랫폼(벽)으로 추가
+            const timerPanel = document.getElementById('timer-panel');
+            if (timerPanel && window.settings.stackingMode) {
+                const rect = timerPanel.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    timerBody = Matter.Bodies.rectangle(
+                        rect.left + rect.width / 2, 
+                        rect.top + rect.height / 2, 
+                        rect.width, 
+                        rect.height, 
+                        { 
+                            isStatic: true, 
+                            friction: 0.8,
+                            chamfer: { radius: 24 } // rounded-3xl(24px)에 맞춘 둥근 모서리
+                        }
+                    );
+                    newBodies.push(timerBody);
+                }
+            }
+
+            Matter.World.add(world, newBodies);
+        }
+
+        window.toggleStackingMode = function(checked) {
+            window.settings.stackingMode = checked;
+            window.saveData();
+
+            if (checked) {
+                initMatter();
+                updateWalls(); // 모드 진입 시 플랫폼 즉시 생성
+                Matter.Runner.run(matterRunner, engine);
+                document.getElementById('matter-container').style.pointerEvents = 'auto';
+
+                // 기존 튕기는 객체들을 물리 엔진 바디로 변환
+                bouncingObjects.forEach(obj => {
+                    if (!obj.body) {
+                        let objRestitution = 0.2;
+                        if (obj.id === 'rainbow') objRestitution = 1.05; // 레인보우 풉 매우 높은 탄성 적용
+                        
+                        obj.body = Matter.Bodies.circle(obj.x + obj.size/2, obj.y + obj.size/2, obj.size/2, {
+                            restitution: objRestitution, friction: 0.8, density: 0.002, // 탄성(restitution)을 낮춤 (레인보우 제외)
+                            frictionAir: obj.id === 'ghost' ? 0.05 : 0.01 // 공기 저항 높임
+                        });
+                        Matter.World.add(world, obj.body);
+                    }
+                });
+            } else {
+                if (matterRunner) Matter.Runner.stop(matterRunner);
+                const container = document.getElementById('matter-container');
+                if (container) container.style.pointerEvents = 'none';
+
+                // 물리 바디를 지우고 기존 튕기기 속도로 변환
+                bouncingObjects.forEach(obj => {
+                    if (obj.body) {
+                        obj.vx = obj.body.velocity.x || (Math.random() > 0.5 ? 1 : -1) * 2;
+                        obj.vy = obj.body.velocity.y || (Math.random() > 0.5 ? 1 : -1) * 2;
+                        obj.baseVx = obj.vx;
+                        obj.baseVy = obj.vy;
+                        Matter.World.remove(world, obj.body);
+                        obj.body = null;
+                    }
+                });
+            }
+        };
+
+        window.updatePoopOpacityUI = function(val) {
+            document.getElementById('poop-opacity-val').innerText = `${val}%`;
+            document.documentElement.style.setProperty('--poop-base-opacity', val / 100);
+        };
+
+        window.applyPoopOpacity = function(val) {
+            window.settings.poopOpacity = parseInt(val);
+            window.saveData();
+            window.updatePoopOpacityUI(val);
         };
 
         let startTime = 0;
@@ -538,7 +709,7 @@
             for (const key in window.gameState.skins) {
                 window.gameState.skins[key].owned = false;
             }
-            window.settings = { maxPoopsOnScreen: 30, isUnlimited: false, showSeconds: true, showMs: true };
+            window.settings = { maxPoopsOnScreen: 30, isUnlimited: false, showSeconds: true, showMs: true, stackingMode: false, poopOpacity: 100 };
             
             // 3. UI 업데이트
             document.getElementById('poop-currency').innerText = '0';
@@ -559,6 +730,12 @@
             document.getElementById('toggle-ms').checked = true;
             window.toggleSecondsSetting(true);
             
+            document.getElementById('stacking-mode').checked = false;
+            window.toggleStackingMode(false);
+            
+            document.getElementById('poop-opacity-slider').value = 100;
+            window.applyPoopOpacity(100);
+
             // 4. 모달 닫기 및 타이머 리셋
             hideResetConfirmModal();
             performActualReset();
@@ -687,7 +864,7 @@
 
         window.handleDebugClick = function(skinId) {
             window.debugClicks[skinId] = (window.debugClicks[skinId] || 0) + 1;
-            if (window.debugClicks[skinId] >= 15) {
+            if (window.debugClicks[skinId] >= 40) {
                 window.debugClicks[skinId] = 0;
                 spawnBouncingPoop(window.gameState.skins[skinId]);
             }
@@ -863,24 +1040,52 @@
             const width = window.innerWidth;
             const height = window.innerHeight;
             
-            let x = Math.random() * (width - 60);
-            let y = Math.random() * (height - 60);
+            let size = 35;
+            let x, y, vx, vy, rotation, rotationSpeed;
             
-            let speedMult = 1;
-            if (skin.isHighTier) speedMult = 1.2;
-            if (skin.id === 'rainbow') speedMult = 2.0;
-            if (skin.id === 'ghost') speedMult = 0.5;
+            if (window.settings.stackingMode) {
+                // 쌓기 모드: 위에서 떨어짐
+                x = Math.random() * (width - 60);
+                y = -60 - Math.random() * 50; 
+                vx = 0; vy = 0;
+                rotation = Math.random() * 360;
+                rotationSpeed = 0;
+            } else {
+                x = Math.random() * (width - 60);
+                y = Math.random() * (height - 60);
+                
+                // 일반 모드 기본 이동 속도 전체적으로 하향 조정
+                let speedMult = 0.7; // 기본 1.0 -> 0.7로 감소
+                if (skin.isHighTier) speedMult = 1.0;
+                if (skin.id === 'rainbow') speedMult = 1.5;
+                if (skin.id === 'ghost') speedMult = 0.4;
 
-            let vx = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 1.5) * speedMult;
-            let vy = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 1.5) * speedMult;
+                vx = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 1.5) * speedMult;
+                vy = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 1.5) * speedMult;
+                rotation = Math.random() * 360;
+                rotationSpeed = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 2); // 회전 속도도 약간 감소
+                if (skin.id === 'rainbow') rotationSpeed *= 2;
+            }
             
             popBox.appendChild(inner);
             wrapper.appendChild(popBox);
             container.appendChild(wrapper);
             
-            let rotation = Math.random() * 360;
-            let rotationSpeed = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 3);
-            if (skin.id === 'rainbow') rotationSpeed *= 3;
+            let body = null;
+            if (window.settings.stackingMode) {
+                if (!engine) initMatter();
+                
+                let objRestitution = 0.2;
+                if (skin.id === 'rainbow') objRestitution = 1.05; // 레인보우 풉 매우 높은 탄성 적용
+                
+                body = Matter.Bodies.circle(x + size/2, y + size/2, size/2, {
+                    restitution: objRestitution, // 탄성(바운스)을 줄여 덜 튀어오르게 변경 (레인보우 제외)
+                    friction: 0.8,
+                    density: 0.002,
+                    frictionAir: skin.id === 'ghost' ? 0.05 : 0.01
+                });
+                Matter.World.add(world, body);
+            }
 
             bouncingObjects.push({ 
                 element: wrapper,
@@ -889,9 +1094,10 @@
                 baseVx: vx, baseVy: vy,
                 rotation: rotation,
                 rotationSpeed: rotationSpeed,
-                size: 35, isHighTier: skin.isHighTier, id: skin.id,
+                size: size, isHighTier: skin.isHighTier, id: skin.id,
                 timeOffset: Math.random() * 10000,
-                lastTeleport: Date.now()
+                lastTeleport: Date.now(),
+                body: body
             });
         }
 
@@ -921,6 +1127,9 @@
                         if (removeIdx !== -1) {
                             const objToRemove = bouncingObjects[removeIdx];
                             objToRemove.element.classList.add('fade-out');
+                            if (objToRemove.body && world) {
+                                Matter.World.remove(world, objToRemove.body); // 물리 엔진에서도 제거
+                            }
                             setTimeout(() => objToRemove.element.remove(), 300);
                             bouncingObjects.splice(removeIdx, 1);
                         } else break;
@@ -937,8 +1146,27 @@
 
             bouncingObjects.forEach(obj => {
                 
-                // 타이머 작동 중(isRunning)일 때만 위치 이동 적용
-                if (isRunning) {
+                if (window.settings.stackingMode && obj.body) {
+                    // 사이버펑크 풉 쌓기 모드 순간이동 효과 (0.5% 확률)
+                    if (obj.id === 'cyberpunk' && Math.random() < 0.005) {
+                        createParticle(obj.x, obj.y, obj.id); // 순간이동 전 위치에 글리치 파티클
+                        const newX = Math.random() * (width - 60) + 30;
+                        const newY = Math.random() * (height / 3); // 화면 상단 부근으로 순간이동
+                        Matter.Body.setPosition(obj.body, { x: newX, y: newY });
+                        Matter.Body.setVelocity(obj.body, { x: 0, y: 0 });
+                    }
+
+                    // Matter.js 엔진 데이터 동기화
+                    obj.x = obj.body.position.x - obj.size / 2;
+                    obj.y = obj.body.position.y - obj.size / 2;
+                    obj.rotation = obj.body.angle * (180 / Math.PI);
+                    
+                    // 화면 밖으로 벗어나는 예외 상황 방지
+                    if (obj.y > height + 200) {
+                        Matter.Body.setPosition(obj.body, { x: width / 2, y: -50 });
+                        Matter.Body.setVelocity(obj.body, { x: 0, y: 0 });
+                    }
+                } else if (isRunning && !window.settings.stackingMode) {
                     if (obj.id === 'rainbow') {
                         obj.vx = obj.baseVx + Math.cos((now + obj.timeOffset) / 300) * 4;
                         obj.vy = obj.baseVy + Math.sin((now + obj.timeOffset) / 300) * 4;
@@ -968,11 +1196,13 @@
                     else if (obj.y >= height - obj.size) { obj.y = height - obj.size; obj.vy *= -1; obj.baseVy *= -1; }
                 }
 
-                // 이동이 멈춰도 회전 및 이펙트는 계속 진행
-                obj.rotation += obj.rotationSpeed;
+                // 이동이 멈춰도 회전 및 이펙트는 계속 진행 (쌓기 모드 아닐 때만 자체 회전)
+                if (!window.settings.stackingMode) {
+                    obj.rotation += obj.rotationSpeed;
+                }
 
                 let finalRotation = obj.rotation;
-                if (obj.id === 'ghost') finalRotation = 0; // 고스트 스킨만 플로팅 유지를 위해 회전 고정
+                if (!window.settings.stackingMode && obj.id === 'ghost') finalRotation = 0; // 고스트 스킨만 플로팅 유지를 위해 회전 고정
 
                 // 위치 이동(translation)은 wrapper에, 자체 회전(rotation)은 inner에 분리하여 적용
                 obj.element.style.transform = `translate(${obj.x}px, ${obj.y}px)`;
@@ -1151,6 +1381,12 @@
             // Ensure button is back to Start state
             if (isRunning) toggleTimerPlay();
             
+            if (world) {
+                bouncingObjects.forEach(obj => {
+                    if (obj.body) Matter.World.remove(world, obj.body);
+                });
+            }
+
             document.getElementById('bouncing-container').innerHTML = '';
             bouncingObjects = [];
             
@@ -1170,6 +1406,18 @@
             document.getElementById('toggle-seconds').checked = window.settings.showSeconds;
             document.getElementById('toggle-ms').checked = window.settings.showMs;
             window.toggleSecondsSetting(window.settings.showSeconds);
+            
+            const stackingCheck = document.getElementById('stacking-mode');
+            if (stackingCheck) {
+                stackingCheck.checked = window.settings.stackingMode;
+                if (window.settings.stackingMode) window.toggleStackingMode(true);
+            }
+            
+            const opacitySlider = document.getElementById('poop-opacity-slider');
+            if (opacitySlider) {
+                opacitySlider.value = window.settings.poopOpacity || 100;
+                window.updatePoopOpacityUI(window.settings.poopOpacity || 100);
+            }
             
             document.getElementById('poop-currency').innerText = window.gameState.poops;
             updateTimerDisplayUI(formatTime(0));
