@@ -230,7 +230,7 @@
                         <span>최대 똥 표시 개수</span>
                         <span id="max-poops-val" class="font-mono text-white">30개</span>
                     </div>
-                    <input type="range" id="max-poops-slider" min="0" max="100" value="30" step="10" class="w-full accent-white mb-4" oninput="updateMaxPoopsUI(this.value)" onchange="applyMaxPoops(this.value)">
+                    <input type="range" id="max-poops-slider" min="0" max="100" value="30" step="1" class="w-full accent-white mb-4" oninput="updateMaxPoopsUI(this.value)" onchange="applyMaxPoops(this.value)">
                     
                     <label class="flex items-center space-x-3 text-sm text-neutral-300 cursor-pointer select-none mb-4">
                         <input type="checkbox" id="unlimited-poops" onchange="toggleUnlimitedPoops(this.checked)" class="w-4 h-4 rounded bg-neutral-800 border-neutral-600 accent-white">
@@ -440,15 +440,16 @@
 
         function checkFocusMode() {
             const limit = window.settings.isUnlimited ? Infinity : window.settings.maxPoopsOnScreen;
-            const topNav = document.getElementById('top-nav');
+            const currencyPill = document.getElementById('currency-pill');
             const statsContainer = document.getElementById('session-stats-container');
             
             if (limit === 0) {
-                topNav.classList.add('opacity-0');
-                topNav.style.pointerEvents = 'none';
+                currencyPill.classList.add('opacity-0');
+                currencyPill.style.pointerEvents = 'none';
                 statsContainer.classList.add('hidden'); // Hide completely to save space
             } else {
-                topNav.classList.remove('opacity-0');
+                currencyPill.classList.remove('opacity-0');
+                currencyPill.style.pointerEvents = 'auto';
                 if (sessionState.totalSpawned > 0) {
                     statsContainer.classList.remove('hidden');
                     statsContainer.classList.remove('opacity-0');
